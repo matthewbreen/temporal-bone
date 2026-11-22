@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cinematic temporal bone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0b0b; --panel:#161212; --panel2:#1d1717; --line:#2c2323; --line2:#3a2e2e;
+  --ink:#efe8de; --ink2:#b9aea2; --ink3:#857a70;
+  --ox:#9e2a2b; --ox2:#c4433f; --bone:#e9dcc6; --focus:#e8b04b;
+  --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace; --serif:'Fraunces',Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+button{font:inherit;color:inherit}
+header{padding:22px 28px 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ox2)}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(26px,3.2vw,38px);line-height:1.08;margin:4px 0 2px;letter-spacing:-.01em}
+.byline{color:var(--ink3);font-size:13px}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tab{background:none;border:0;padding:8px 16px;border-radius:7px;cursor:pointer;color:var(--ink2);font-weight:500}
+.tab[aria-selected=true]{background:var(--ox);color:#fff}
+.tab:focus-visible,.chip:focus-visible,.btn:focus-visible,.lab-item:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0;min-height:calc(100vh - 110px)}
+.viewer{padding:18px 22px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
+.stackbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:100%}
+.chip{background:var(--panel);border:1px solid var(--line);color:var(--ink2);padding:6px 12px;border-radius:999px;cursor:pointer;font-size:13px;display:flex;gap:8px;align-items:center}
+.chip .n{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.chip[aria-pressed=true]{border-color:var(--ox2);color:var(--ink);background:#2a1616}
+.chip[aria-pressed=true] .n{color:var(--ox2)}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:var(--bone);opacity:.8}
+.stage{--ar:1;position:relative;aspect-ratio:var(--ar);width:min(100%, calc((100vh - 300px) * var(--ar)));min-width:280px;background:#000;border-radius:6px;overflow:hidden;touch-action:none;cursor:ns-resize;user-select:none;box-shadow:0 0 0 1px var(--line)}
+.stage canvas,.stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage svg{pointer-events:none}
+.stage svg .lbl{pointer-events:auto;cursor:pointer}
+.hud{position:absolute;left:10px;top:8px;font-family:var(--mono);font-size:12px;color:#d9cfc2;text-shadow:0 1px 2px #000;pointer-events:none;line-height:1.45}
+.hud b{color:#fff;font-weight:500}
+.hud .lab{color:var(--focus)}
+.loadbar{position:absolute;left:0;bottom:0;height:3px;background:var(--ox2);width:0;transition:width .2s,opacity .4s}
+.hint{position:absolute;right:10px;bottom:10px;font-family:var(--mono);font-size:11px;color:#cfc4b6;background:rgba(0,0,0,.55);padding:4px 8px;border-radius:5px;pointer-events:none;transition:opacity .6s}
+.scrub{width:min(100%, calc((100vh - 300px) * var(--ar)));min-width:280px;position:relative;padding:8px 0 2px}
+.ticks{position:absolute;left:9px;right:9px;top:0;height:8px;pointer-events:none}
+.ticks i{position:absolute;top:0;width:2px;height:7px;margin-left:-1px;background:var(--focus);border-radius:1px}
+input[type=range]{width:100%;accent-color:var(--ox2);margin:0}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
+.btn{background:var(--panel);border:1px solid var(--line);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--ink2);display:inline-flex;gap:6px;align-items:center}
+.btn:hover{border-color:var(--line2);color:var(--ink)}
+.btn[aria-pressed=true]{border-color:var(--ox2);color:var(--ink);background:#2a1616}
+.btn[disabled]{opacity:.4;cursor:default}
+.btn kbd{font-family:var(--mono);font-size:10.5px;color:var(--ink3);border:1px solid var(--line2);border-radius:3px;padding:0 4px}
+select.btn{appearance:none;padding-right:12px}
+aside{border-left:1px solid var(--line);background:var(--panel);padding:20px 20px 28px;overflow:auto;max-height:calc(100vh - 110px);position:sticky;top:0}
+aside h2{font-family:var(--serif);font-weight:600;font-size:21px;margin:0 0 2px;line-height:1.2}
+aside .plane{font-family:var(--mono);font-size:11.5px;color:var(--ox2);letter-spacing:.08em;text-transform:uppercase}
+aside p{color:var(--ink2);margin:10px 0 0;font-size:14px}
+aside h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin:22px 0 8px;font-weight:500;display:flex;justify-content:space-between}
+.look{margin:0;padding:0;list-style:none}
+.look li{padding:6px 0 6px 16px;position:relative;color:var(--ink2);font-size:14px;border-bottom:1px solid var(--line)}
+.look li:before{content:"";position:absolute;left:2px;top:14px;width:6px;height:6px;border-radius:50%;border:1.5px solid var(--ox2)}
+.labs{display:flex;flex-direction:column;gap:2px}
+.lab-group{font-family:var(--mono);font-size:11px;color:var(--ink3);margin:10px 0 3px;cursor:pointer}
+.lab-group:hover{color:var(--focus)}
+.lab-item{all:unset;display:flex;gap:8px;align-items:baseline;padding:4px 8px;border-radius:5px;cursor:pointer;font-size:13.5px;color:var(--ink2)}
+.lab-item:hover{background:var(--panel2);color:var(--ink)}
+.lab-item.cur{color:var(--ink)}
+.lab-item .num{font-family:var(--mono);font-size:11px;color:var(--ink3);min-width:18px}
+.lab-item.cur .num{color:var(--focus)}
+.lab-item.hidden .txt{filter:blur(5px);opacity:.7}
+.empty{color:var(--ink3);font-size:13.5px;border:1px dashed var(--line2);border-radius:8px;padding:12px;margin-top:4px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12.5px;color:var(--ink3)}
+.keys kbd{font-family:var(--mono);font-size:11px;color:var(--ink2);border:1px solid var(--line2);border-radius:4px;padding:0 5px;justify-self:start}
+footer{border-top:1px solid var(--line);padding:14px 28px;color:var(--ink3);font-size:12.5px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media (max-width:900px){
+  main{grid-template-columns:1fr}
+  aside{border-left:0;border-top:1px solid var(--line);max-height:none;position:static}
+  .stage,.scrub{width:100%}
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="eyebrow">Temporal bone · cinematic stacks</div>
+    <h1>Cinematic Temporal Bone</h1>
+    <div class="byline">Cinematic renderings &amp; annotations by Matt B</div>
+  </div>
+  <div class="tabs" role="tablist" id="tabs" hidden></div><button class="btn" id="closeCine" hidden style="font-size:14px;padding:8px 16px">✕ Back to the 3D model</button>
+</header>
+<main>
+  <section class="viewer">
+    <div class="stackbar" id="stackbar" aria-label="Image stacks"></div>
+    <div class="stage" id="stage" tabindex="0" aria-label="Image stack. Scroll, drag or use arrow keys to move through slices.">
+      <canvas id="cv"></canvas>
+      <svg id="ov" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="5.2" markerHeight="5.2" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f4efe6" stroke="#000" stroke-opacity=".55" stroke-width="1"/></marker>
+        </defs>
+        <g id="ovg"></g>
+      </svg>
+      <div class="hud" id="hud"></div>
+      <div class="loadbar" id="loadbar"></div>
+      <div class="hint" id="hint">scroll · drag · ↑↓</div>
+    </div>
+    <div class="scrub" id="scrub"><div class="ticks" id="ticks"></div><input type="range" id="slider" min="0" max="0" value="0" aria-label="Slice"></div>
+    <div class="controls">
+      <button class="btn" id="prevLab" title="Previous labeled slice (P)">◂ labeled <kbd>P</kbd></button>
+      <button class="btn" id="play" aria-pressed="false" title="Cine (Space)">▶ Cine <kbd>Space</kbd></button>
+      <select class="btn" id="fps" aria-label="Cine speed"><option value="5">5 fps</option><option value="10" selected>10 fps</option><option value="15">15 fps</option><option value="24">24 fps</option></select>
+      <button class="btn" id="nextLab" title="Next labeled slice (N)">labeled ▸ <kbd>N</kbd></button>
+      <button class="btn" id="tglLabels" aria-pressed="true" title="Toggle labels (L)">Labels <kbd>L</kbd></button>
+      <button class="btn" id="tglQuiz" aria-pressed="false" title="Quiz mode (Q)">Quiz <kbd>Q</kbd></button>
+    </div>
+  </section>
+  <aside id="side"></aside>
+</main>
+<footer>
+  <span>For educational use only. Frames come from a screen capture of the cinematic renderings, so the resolution matches that capture.</span>
+  <span>Labels mark the slice where each one was placed.</span>
+</footer>
+
+<script>
+window.TB_LABELS={"149":[{"t":"Epitympanum","x":888,"y":184,"x2":988,"y2":202,"a":[[869,208],[738,275]]},{"t":"Aditus ad antrum","x":880,"y":386,"x2":1006,"y2":404,"a":[[858,390],[685,368]]}],"151":[{"t":"Koerner septum","x":784,"y":444,"x2":902,"y2":462,"a":[[766,431],[663,354]]}],"153":[{"t":"Malleus head","x":815,"y":116,"x2":912,"y2":134,"a":[[811,150],[745,245]]},{"t":"Incus body","x":779,"y":395,"x2":861,"y2":413,"a":[[783,375],[737,286]]},{"t":"Incus short process","x":583,"y":425,"x2":729,"y2":443,"a":[[685,402],[706,316]]}],"154":[{"t":"Lateral epitympanum","x":422,"y":209,"x2":580,"y2":227,"a":[[601,227],[702,258]]}],"155":[{"t":"Anterior epitympanum","x":957,"y":212,"x2":1123,"y2":230,"a":[[852,235],[786,244]]}],"156":[{"t":"Tensor tympani tendon","x":764,"y":142,"x2":934,"y2":160,"a":[[809,180],[785,264]]},{"t":"(Anterior) tympanic isthmus","x":957,"y":267,"x2":1167,"y2":285,"a":[[936,280],[775,304]]},{"t":"Incus long / lenticular process","x":418,"y":392,"x2":646,"y2":410,"a":[[663,380],[745,322]]},{"t":"Stapes","x":753,"y":441,"x2":804,"y2":459,"a":[[780,419],[784,341]]}],"158":[{"t":"Prussak space","x":561,"y":134,"x2":668,"y2":152,"a":[[664,169],[723,268]]}],"216":[{"t":"Tensor tympani muscle","x":243,"y":519,"x2":414,"y2":537,"a":[[327,557],[325,722]]},{"t":"Petrotympanic fissure","x":504,"y":832,"x2":669,"y2":850,"a":[[490,816],[424,746]]},{"t":"Eustachian tube","x":383,"y":917,"x2":501,"y2":935,"a":[[399,897],[339,766]]}],"219":[{"t":"Genu of facial nerve canal","x":281,"y":460,"x2":475,"y2":478,"a":[[362,499],[346,646]]},{"t":"Epitympanum","x":597,"y":566,"x2":697,"y2":584,"a":[[576,587],[473,632]]},{"t":"Protympanum","x":285,"y":882,"x2":388,"y2":900,"a":[[343,860],[349,777]]}],"220":[{"t":"Tensor tympani tendon","x":318,"y":449,"x2":488,"y2":467,"a":[[400,487],[396,685]]},{"t":"Head of malleus","x":611,"y":607,"x2":730,"y2":625,"a":[[589,622],[442,656]]},{"t":"Neck of malleus","x":564,"y":681,"x2":683,"y2":699,"a":[[541,690],[444,691]]},{"t":"Lateral process of malleus","x":515,"y":776,"x2":712,"y2":794,"a":[[498,761],[450,718]]},{"t":"Cochlear apex","x":150,"y":787,"x2":257,"y2":805,"a":[[260,768],[304,706]]},{"t":"Manubrium of malleus","x":367,"y":813,"x2":531,"y2":831,"a":[[425,790],[414,730]]}],"221":[{"t":"Tympanic segment, facial nerve canal","x":297,"y":392,"x2":572,"y2":410,"a":[[402,431],[367,645]]},{"t":"Labyrinthine segment, facial nerve canal","x":36,"y":434,"x2":335,"y2":452,"a":[[267,471],[324,623]]},{"t":"Lateral semicircular canal eminence","x":526,"y":475,"x2":796,"y2":493,"a":[[531,509],[451,611]]},{"t":"Scutum","x":593,"y":687,"x2":648,"y2":705,"a":[[570,693],[478,685]]},{"t":"Prussak space","x":532,"y":731,"x2":639,"y2":749,"a":[[511,726],[454,703]]},{"t":"Cochlea, middle turn","x":7,"y":753,"x2":154,"y2":771,"a":[[173,745],[257,700]]},{"t":"Cochlear promontory","x":302,"y":858,"x2":460,"y2":876,"a":[[365,836],[354,742]]}],"223":[{"t":"EAC, bony portion","x":575,"y":553,"x2":847,"y2":571,"a":[[614,590],[566,685]]},{"t":"EAC, cartilaginous portion","x":808,"y":621,"x2":1144,"y2":639,"a":[[809,654],[749,726]]}],"225":[{"t":"Aditus ad antrum","x":513,"y":350,"x2":639,"y2":368,"a":[[550,389],[502,581]]},{"t":"Tympanic segment, facial nerve canal","x":165,"y":436,"x2":440,"y2":454,"a":[[351,474],[392,653]]},{"t":"Stapes in oval window","x":106,"y":769,"x2":273,"y2":787,"a":[[295,752],[378,687]]},{"t":"Lenticular process of incus","x":435,"y":769,"x2":643,"y2":787,"a":[[455,749],[428,703]]}],"226":[{"t":"Vestibule","x":209,"y":501,"x2":279,"y2":519,"a":[[285,536],[351,629]]},{"t":"Internal auditory canal","x":29,"y":772,"x2":201,"y2":790,"a":[[181,752],[223,670]]},{"t":"Basal turn of cochlea","x":379,"y":808,"x2":535,"y2":826,"a":[[392,788],[353,719]]}],"227":[{"t":"Pyramidal eminence / stapedius tendon","x":602,"y":665,"x2":889,"y2":683,"a":[[579,674],[420,682]]}],"228":[{"t":"Round window","x":462,"y":788,"x2":571,"y2":806,"a":[[445,773],[369,707]]}],"230":[{"t":"Koerner septum","x":444,"y":300,"x2":562,"y2":318,"a":[[510,339],[525,549]]}],"232":[{"t":"Styloid process","x":601,"y":1120,"x2":716,"y2":1138,"a":[[578,1127],[385,1119]]}],"401":[{"t":"Superior crus (of antihelix)","x":499,"y":95,"x2":703,"y2":113,"a":[[505,130],[333,369]]},{"t":"Helix","x":696,"y":291,"x2":736,"y2":309,"a":[[683,325],[572,452]]},{"t":"Antihelix","x":870,"y":680,"x2":938,"y2":698,"a":[[848,690],[504,713]]},{"t":"Crus of helix","x":-7,"y":774,"x2":100,"y2":792,"a":[[116,759],[281,618]]},{"t":"Tragus","x":67,"y":910,"x2":118,"y2":928,"a":[[136,899],[265,812]]},{"t":"Antitragus","x":709,"y":974,"x2":787,"y2":992,"a":[[689,967],[409,824]]},{"t":"Lobule","x":615,"y":1138,"x2":665,"y2":1156,"a":[[594,1138],[393,1086]]},{"t":"Inferior crus (of antihelix)","x":-194,"y":596,"x2":66,"y2":616,"a":[[80,596],[314,513]]}],"410":[{"t":"Triangular fossa","x":557,"y":179,"x2":679,"y2":197,"a":[[542,211],[307,433]]},{"t":"Concha","x":750,"y":348,"x2":804,"y2":366,"a":[[733,379],[427,646]]},{"t":"Scaphoid fossa (between helix and antihelix)","x":776,"y":544,"x2":1113,"y2":562,"a":[[755,565],[563,641]]},{"t":"Intertragal notch","x":90,"y":1049,"x2":218,"y2":1067,"a":[[220,1030],[304,913]]}],"423":[{"t":"Cymba (of concha)","x":615,"y":441,"x2":754,"y2":459,"a":[[595,463],[378,559]]},{"t":"Cavum (of concha)","x":721,"y":821,"x2":860,"y2":839,"a":[[699,825],[402,783]]}],"431":[{"t":"Temporal bone (coming into view)","x":662,"y":514,"x2":916,"y2":532,"a":[[642,510],[482,448]]},{"t":"External auditory canal","x":498,"y":888,"x2":672,"y2":906,"a":[[478,883],[289,808]]}],"441":[{"t":"Mastoid air cells","x":820,"y":867,"x2":1024,"y2":885,"a":[[802,855],[544,662]]},{"t":"Zygomatic arch","x":108,"y":906,"x2":222,"y2":924,"a":[[140,885],[105,747]]}],"442":[{"t":"McEwen's (suprameatal) triangle","x":683,"y":617,"x2":819,"y2":635,"a":[[661,627],[311,643]]},{"t":"Spine of Henle","x":248,"y":1006,"x2":355,"y2":1024,"a":[[319,984],[368,737]]}],"448":[{"t":"Tegmen mastoideum","x":265,"y":246,"x2":417,"y2":264,"a":[[362,285],[392,456]]},{"t":"Mandibular condyle","x":66,"y":399,"x2":211,"y2":417,"a":[[143,437],[159,827]]},{"t":"Sigmoid sinus","x":855,"y":406,"x2":958,"y2":424,"a":[[834,425],[627,496]]},{"t":"Emissary vein","x":913,"y":601,"x2":1030,"y2":619,"a":[[891,606],[719,593]]}],"452":[{"t":"Glaserian fissure (squamotympanic / tympanosquamous)","x":45,"y":375,"x2":478,"y2":393,"a":[[252,413],[241,733]]},{"t":"Tympanomastoid fissure","x":613,"y":601,"x2":795,"y2":619,"a":[[617,636],[447,874]]},{"t":"Squamous bone","x":-18,"y":943,"x2":102,"y2":961,"a":[[95,923],[198,747]]},{"t":"Tympanic bone","x":301,"y":1070,"x2":412,"y2":1088,"a":[[359,1048],[363,891]]},{"t":"Mastoid bone","x":512,"y":1078,"x2":611,"y2":1096,"a":[[548,1056],[538,991]]}],"457":[{"t":"Koerner septum (remnant of petrosquamosal suture)","x":-18,"y":360,"x2":384,"y2":378,"a":[[256,398],[296,556]]},{"t":"Aditus ad antrum","x":556,"y":483,"x2":681,"y2":501,"a":[[536,502],[347,569]]}],"460":[{"t":"Incus in epitympanum","x":126,"y":440,"x2":289,"y2":458,"a":[[237,478],[277,645]]},{"t":"Lateral semicircular canal eminence","x":558,"y":453,"x2":828,"y2":471,"a":[[540,479],[348,598]]}],"462":[{"t":"Incus body","x":268,"y":436,"x2":350,"y2":454,"a":[[297,475],[272,631]]},{"t":"Incus short process","x":508,"y":531,"x2":654,"y2":549,"a":[[488,554],[303,645]]},{"t":"Malleus head","x":30,"y":560,"x2":128,"y2":578,"a":[[146,588],[233,649]]},{"t":"Incus long process","x":604,"y":647,"x2":743,"y2":665,"a":[[582,657],[312,675]]},{"t":"Malleus neck","x":56,"y":733,"x2":154,"y2":751,"a":[[173,725],[253,682]]},{"t":"Malleus lateral process","x":45,"y":838,"x2":219,"y2":856,"a":[[199,818],[252,716]]},{"t":"Malleus manubrium (handle)","x":247,"y":887,"x2":460,"y2":905,"a":[[311,865],[275,722]]}],"463":[{"t":"Lateral semicircular canal","x":604,"y":561,"x2":799,"y2":579,"a":[[582,576],[374,624]]},{"t":"Mastoid segment, facial nerve canal","x":609,"y":684,"x2":872,"y2":702,"a":[[590,709],[436,802]]}],"464":[{"t":"Chorda tympani","x":66,"y":511,"x2":174,"y2":529,"a":[[168,547],[240,678]]},{"t":"Incus long process","x":549,"y":546,"x2":688,"y2":564,"a":[[529,568],[305,667]]},{"t":"Stapes","x":559,"y":648,"x2":610,"y2":666,"a":[[536,660],[336,685]]},{"t":"Petrotympanic fissure","x":74,"y":836,"x2":239,"y2":854,"a":[[188,814],[207,739]]}],"466":[{"t":"Tympanic segment, facial nerve canal","x":267,"y":419,"x2":542,"y2":437,"a":[[355,457],[309,655]]},{"t":"Cochleariform process","x":24,"y":552,"x2":191,"y2":570,"a":[[195,586],[258,664]]},{"t":"Tensor tympani tendon","x":7,"y":702,"x2":177,"y2":720,"a":[[199,703],[261,690]]},{"t":"Pyramidal eminence / stapedius tendon","x":486,"y":734,"x2":757,"y2":752,"a":[[466,729],[355,684]]},{"t":"Stapes head","x":501,"y":836,"x2":592,"y2":854,"a":[[484,822],[327,696]]}],"467":[{"t":"Sinus tympani","x":534,"y":581,"x2":639,"y2":599,"a":[[514,604],[379,670]]},{"t":"Subiculum","x":518,"y":669,"x2":594,"y2":687,"a":[[496,684],[372,711]]},{"t":"Funiculus","x":247,"y":809,"x2":318,"y2":827,"a":[[316,789],[342,740]]},{"t":"Sinus subtympanicus","x":451,"y":896,"x2":607,"y2":914,"a":[[456,877],[359,731]]}],"468":[{"t":"Oval window","x":517,"y":504,"x2":614,"y2":522,"a":[[499,533],[324,659]]},{"t":"Round window","x":536,"y":543,"x2":645,"y2":561,"a":[[518,572],[360,684]]}]};
+
+const MANIFEST={"tb1":"p/tb001.json","tb2":"p/tb001.json","tb3":"p/tb001.json","tb4":"p/tb001.json","tb5":"p/tb001.json","tb6":"p/tb001.json","tb7":"p/tb001.json","tb8":"p/tb001.json","tb9":"p/tb001.json","tb10":"p/tb001.json","tb11":"p/tb001.json","tb12":"p/tb001.json","tb13":"p/tb001.json","tb14":"p/tb001.json","tb15":"p/tb001.json","tb16":"p/tb001.json","tb17":"p/tb001.json","tb18":"p/tb001.json","tb19":"p/tb001.json","tb20":"p/tb001.json","tb21":"p/tb021.json","tb22":"p/tb021.json","tb23":"p/tb021.json","tb24":"p/tb021.json","tb25":"p/tb021.json","tb26":"p/tb021.json","tb27":"p/tb021.json","tb28":"p/tb021.json","tb29":"p/tb021.json","tb30":"p/tb021.json","tb31":"p/tb021.json","tb32":"p/tb021.json","tb33":"p/tb021.json","tb34":"p/tb021.json","tb35":"p/tb021.json","tb36":"p/tb021.json","tb37":"p/tb021.json","tb38":"p/tb021.json","tb39":"p/tb021.json","tb40":"p/tb021.json","tb41":"p/tb041.json","tb42":"p/tb041.json","tb43":"p/tb041.json","tb44":"p/tb041.json","tb45":"p/tb041.json","tb46":"p/tb041.json","tb47":"p/tb041.json","tb48":"p/tb041.json","tb49":"p/tb041.json","tb50":"p/tb041.json","tb51":"p/tb041.json","tb52":"p/tb041.json","tb53":"p/tb041.json","tb54":"p/tb041.json","tb55":"p/tb041.json","tb56":"p/tb041.json","tb57":"p/tb041.json","tb58":"p/tb041.json","tb59":"p/tb041.json","tb60":"p/tb041.json","tb61":"p/tb061.json","tb62":"p/tb061.json","tb63":"p/tb061.json","tb64":"p/tb061.json","tb65":"p/tb061.json","tb66":"p/tb061.json","tb67":"p/tb061.json","tb68":"p/tb061.json","tb69":"p/tb061.json","tb70":"p/tb061.json","tb71":"p/tb061.json","tb72":"p/tb061.json","tb73":"p/tb061.json","tb74":"p/tb061.json","tb75":"p/tb061.json","tb76":"p/tb061.json","tb77":"p/tb061.json","tb78":"p/tb061.json","tb79":"p/tb061.json","tb80":"p/tb061.json","tb81":"p/tb081.json","tb82":"p/tb081.json","tb83":"p/tb081.json","tb84":"p/tb081.json","tb85":"p/tb081.json","tb86":"p/tb081.json","tb87":"p/tb081.json","tb88":"p/tb081.json","tb89":"p/tb081.json","tb90":"p/tb081.json","tb91":"p/tb081.json","tb92":"p/tb081.json","tb93":"p/tb081.json","tb94":"p/tb081.json","tb95":"p/tb081.json","tb96":"p/tb081.json","tb97":"p/tb081.json","tb98":"p/tb081.json","tb99":"p/tb081.json","tb100":"p/tb081.json","tb101":"p/tb101.json","tb102":"p/tb101.json","tb103":"p/tb101.json","tb104":"p/tb101.json","tb105":"p/tb101.json","tb106":"p/tb101.json","tb107":"p/tb101.json","tb108":"p/tb101.json","tb109":"p/tb101.json","tb110":"p/tb101.json","tb111":"p/tb101.json","tb112":"p/tb101.json","tb113":"p/tb101.json","tb114":"p/tb101.json","tb115":"p/tb101.json","tb116":"p/tb101.json","tb117":"p/tb101.json","tb118":"p/tb101.json","tb119":"p/tb101.json","tb120":"p/tb101.json","tb121":"p/tb121.json","tb122":"p/tb121.json","tb123":"p/tb121.json","tb124":"p/tb121.json","tb125":"p/tb121.json","tb126":"p/tb121.json","tb127":"p/tb121.json","tb128":"p/tb121.json","tb129":"p/tb121.json","tb130":"p/tb121.json","tb131":"p/tb121.json","tb132":"p/tb121.json","tb133":"p/tb121.json","tb134":"p/tb121.json","tb135":"p/tb121.json","tb136":"p/tb121.json","tb137":"p/tb121.json","tb138":"p/tb121.json","tb139":"p/tb121.json","tb140":"p/tb121.json","tb141":"p/tb141.json","tb142":"p/tb141.json","tb143":"p/tb141.json","tb144":"p/tb141.json","tb145":"p/tb141.json","tb146":"p/tb141.json","tb147":"p/tb141.json","tb148":"p/tb141.json","tb149":"p/tb141.json","tb150":"p/tb141.json","tb151":"p/tb141.json","tb152":"p/tb141.json","tb153":"p/tb141.json","tb154":"p/tb141.json","tb155":"p/tb141.json","tb156":"p/tb141.json","tb157":"p/tb141.json","tb158":"p/tb141.json","tb159":"p/tb141.json","tb160":"p/tb141.json","tb161":"p/tb161.json","tb162":"p/tb161.json","tb163":"p/tb161.json","tb164":"p/tb161.json","tb165":"p/tb161.json","tb166":"p/tb161.json","tb167":"p/tb161.json","tb168":"p/tb161.json","tb169":"p/tb161.json","tb170":"p/tb161.json","tb171":"p/tb161.json","tb172":"p/tb161.json","tb173":"p/tb161.json","tb174":"p/tb161.json","tb175":"p/tb161.json","tb176":"p/tb161.json","tb177":"p/tb161.json","tb178":"p/tb161.json","tb179":"p/tb161.json","tb180":"p/tb161.json","tb181":"p/tb181.json","tb182":"p/tb181.json","tb183":"p/tb181.json","tb184":"p/tb181.json","tb185":"p/tb181.json","tb186":"p/tb181.json","tb187":"p/tb181.json","tb188":"p/tb181.json","tb189":"p/tb181.json","tb190":"p/tb181.json","tb191":"p/tb181.json","tb192":"p/tb181.json","tb193":"p/tb181.json","tb194":"p/tb181.json","tb195":"p/tb181.json","tb196":"p/tb181.json","tb197":"p/tb181.json","tb198":"p/tb181.json","tb199":"p/tb181.json","tb200":"p/tb181.json","tb201":"p/tb201.json","tb202":"p/tb201.json","tb203":"p/tb201.json","tb204":"p/tb201.json","tb205":"p/tb201.json","tb206":"p/tb201.json","tb207":"p/tb201.json","tb208":"p/tb201.json","tb209":"p/tb201.json","tb210":"p/tb201.json","tb211":"p/tb201.json","tb212":"p/tb201.json","tb213":"p/tb201.json","tb214":"p/tb201.json","tb215":"p/tb201.json","tb216":"p/tb201.json","tb217":"p/tb201.json","tb218":"p/tb201.json","tb219":"p/tb201.json","tb220":"p/tb201.json","tb221":"p/tb221.json","tb222":"p/tb221.json","tb223":"p/tb221.json","tb224":"p/tb221.json","tb225":"p/tb221.json","tb226":"p/tb221.json","tb227":"p/tb221.json","tb228":"p/tb221.json","tb229":"p/tb221.json","tb230":"p/tb221.json","tb231":"p/tb221.json","tb232":"p/tb221.json","tb233":"p/tb221.json","tb234":"p/tb221.json","tb235":"p/tb221.json","tb236":"p/tb221.json","tb237":"p/tb221.json","tb238":"p/tb221.json","tb239":"p/tb221.json","tb240":"p/tb221.json","tb241":"p/tb241.json","tb242":"p/tb241.json","tb243":"p/tb241.json","tb244":"p/tb241.json","tb245":"p/tb241.json","tb246":"p/tb241.json","tb247":"p/tb241.json","tb248":"p/tb241.json","tb249":"p/tb241.json","tb250":"p/tb241.json","tb251":"p/tb241.json","tb252":"p/tb241.json","tb253":"p/tb241.json","tb254":"p/tb241.json","tb255":"p/tb241.json","tb256":"p/tb241.json","tb257":"p/tb241.json","tb258":"p/tb241.json","tb259":"p/tb241.json","tb260":"p/tb241.json","tb261":"p/tb261.json","tb262":"p/tb261.json","tb263":"p/tb261.json","tb264":"p/tb261.json","tb265":"p/tb261.json","tb266":"p/tb261.json","tb267":"p/tb261.json","tb268":"p/tb261.json","tb269":"p/tb261.json","tb270":"p/tb261.json","tb271":"p/tb261.json","tb272":"p/tb261.json","tb273":"p/tb261.json","tb274":"p/tb261.json","tb275":"p/tb261.json","tb276":"p/tb261.json","tb277":"p/tb261.json","tb278":"p/tb261.json","tb279":"p/tb261.json","tb280":"p/tb261.json","tb281":"p/tb281.json","tb282":"p/tb281.json","tb283":"p/tb281.json","tb284":"p/tb281.json","tb285":"p/tb281.json","tb286":"p/tb281.json","tb287":"p/tb281.json","tb288":"p/tb281.json","tb289":"p/tb281.json","tb290":"p/tb281.json","tb291":"p/tb281.json","tb292":"p/tb281.json","tb293":"p/tb281.json","tb294":"p/tb281.json","tb295":"p/tb281.json","tb296":"p/tb281.json","tb297":"p/tb281.json","tb298":"p/tb281.json","tb299":"p/tb281.json","tb300":"p/tb281.json","tb301":"p/tb301.json","tb302":"p/tb301.json","tb303":"p/tb301.json","tb304":"p/tb301.json","tb305":"p/tb301.json","tb306":"p/tb301.json","tb307":"p/tb301.json","tb308":"p/tb301.json","tb309":"p/tb301.json","tb310":"p/tb301.json","tb311":"p/tb301.json","tb312":"p/tb301.json","tb313":"p/tb301.json","tb314":"p/tb301.json","tb315":"p/tb301.json","tb316":"p/tb301.json","tb317":"p/tb301.json","tb318":"p/tb301.json","tb319":"p/tb301.json","tb320":"p/tb301.json","tb321":"p/tb321.json","tb322":"p/tb321.json","tb323":"p/tb321.json","tb324":"p/tb321.json","tb325":"p/tb321.json","tb326":"p/tb321.json","tb327":"p/tb321.json","tb328":"p/tb321.json","tb329":"p/tb321.json","tb330":"p/tb321.json","tb331":"p/tb321.json","tb332":"p/tb321.json","tb333":"p/tb321.json","tb334":"p/tb321.json","tb335":"p/tb321.json","tb336":"p/tb321.json","tb337":"p/tb321.json","tb338":"p/tb321.json","tb339":"p/tb321.json","tb340":"p/tb321.json","tb341":"p/tb341.json","tb342":"p/tb341.json","tb343":"p/tb341.json","tb344":"p/tb341.json","tb345":"p/tb341.json","tb346":"p/tb341.json","tb347":"p/tb341.json","tb348":"p/tb341.json","tb349":"p/tb341.json","tb350":"p/tb341.json","tb351":"p/tb341.json","tb352":"p/tb341.json","tb353":"p/tb341.json","tb354":"p/tb341.json","tb355":"p/tb341.json","tb356":"p/tb341.json","tb357":"p/tb341.json","tb358":"p/tb341.json","tb359":"p/tb341.json","tb360":"p/tb341.json","tb361":"p/tb361.json","tb362":"p/tb361.json","tb363":"p/tb361.json","tb364":"p/tb361.json","tb365":"p/tb361.json","tb366":"p/tb361.json","tb367":"p/tb361.json","tb368":"p/tb361.json","tb369":"p/tb361.json","tb370":"p/tb361.json","tb371":"p/tb361.json","tb372":"p/tb361.json","tb373":"p/tb361.json","tb374":"p/tb361.json","tb375":"p/tb361.json","tb376":"p/tb361.json","tb377":"p/tb361.json","tb378":"p/tb361.json","tb379":"p/tb361.json","tb380":"p/tb361.json","tb381":"p/tb381.json","tb382":"p/tb381.json","tb383":"p/tb381.json","tb384":"p/tb381.json","tb385":"p/tb381.json","tb386":"p/tb381.json","tb387":"p/tb381.json","tb388":"p/tb381.json","tb389":"p/tb381.json","tb390":"p/tb381.json","tb391":"p/tb381.json","tb392":"p/tb381.json","tb393":"p/tb381.json","tb394":"p/tb381.json","tb395":"p/tb381.json","tb396":"p/tb381.json","tb397":"p/tb381.json","tb398":"p/tb381.json","tb399":"p/tb381.json","tb400":"p/tb381.json","tb401":"p/tb401.json","tb402":"p/tb401.json","tb403":"p/tb401.json","tb404":"p/tb401.json","tb405":"p/tb401.json","tb406":"p/tb401.json","tb407":"p/tb401.json","tb408":"p/tb401.json","tb409":"p/tb401.json","tb410":"p/tb401.json","tb411":"p/tb401.json","tb412":"p/tb401.json","tb413":"p/tb401.json","tb414":"p/tb401.json","tb415":"p/tb401.json","tb416":"p/tb401.json","tb417":"p/tb401.json","tb418":"p/tb401.json","tb419":"p/tb401.json","tb420":"p/tb401.json","tb421":"p/tb421.json","tb422":"p/tb421.json","tb423":"p/tb421.json","tb424":"p/tb421.json","tb425":"p/tb421.json","tb426":"p/tb421.json","tb427":"p/tb421.json","tb428":"p/tb421.json","tb429":"p/tb421.json","tb430":"p/tb421.json","tb431":"p/tb421.json","tb432":"p/tb421.json","tb433":"p/tb421.json","tb434":"p/tb421.json","tb435":"p/tb421.json","tb436":"p/tb421.json","tb437":"p/tb421.json","tb438":"p/tb421.json","tb439":"p/tb421.json","tb440":"p/tb421.json","tb441":"p/tb441.json","tb442":"p/tb441.json","tb443":"p/tb441.json","tb444":"p/tb441.json","tb445":"p/tb441.json","tb446":"p/tb441.json","tb447":"p/tb441.json","tb448":"p/tb441.json","tb449":"p/tb441.json","tb450":"p/tb441.json","tb451":"p/tb441.json","tb452":"p/tb441.json","tb453":"p/tb441.json","tb454":"p/tb441.json","tb455":"p/tb441.json","tb456":"p/tb441.json","tb457":"p/tb441.json","tb458":"p/tb441.json","tb459":"p/tb441.json","tb460":"p/tb441.json","tb461":"p/tb461.json","tb462":"p/tb461.json","tb463":"p/tb461.json","tb464":"p/tb461.json","tb465":"p/tb461.json","tb466":"p/tb461.json","tb467":"p/tb461.json","tb468":"p/tb461.json","tb469":"p/tb461.json","tb470":"p/tb461.json","tb471":"p/tb461.json","tb472":"p/tb461.json","tb473":"p/tb461.json","tb474":"p/tb461.json","tb475":"p/tb461.json","tb476":"p/tb461.json","tb477":"p/tb461.json","tb478":"p/tb461.json","tb479":"p/tb461.json","tb480":"p/tb461.json","tb481":"p/tb481.json","tb482":"p/tb481.json","tb483":"p/tb481.json","tb484":"p/tb481.json","tb485":"p/tb481.json","tb486":"p/tb481.json","tb487":"p/tb481.json","tb488":"p/tb481.json","tb489":"p/tb481.json","tb490":"p/tb481.json","tb491":"p/tb481.json","tb492":"p/tb481.json","tb493":"p/tb481.json","tb494":"p/tb481.json","tb495":"p/tb481.json","tb496":"p/tb481.json","tb497":"p/tb481.json","tb498":"p/tb481.json","tb499":"p/tb481.json","tb500":"p/tb481.json"};
+const REGIONS = {
+  'temporal-bone': {
+    name: 'Temporal bone', start: 4, prefix: 'tb', w: 960, h: 1000, vb: [1160, 1208],
+    intro: 'A normal temporal bone in cinematic rendering, captured as five passes. Labels appear on the slice they were placed on. The gold ticks on the scrubber mark those slices.',
+    stacks: [
+      { name: 'Axial ascending', plane: 'Axial · inferior → superior', from: 1, to: 100,
+        desc: 'Climbs from below the EAC through the middle ear to the mastoid and calvarium.',
+        look: ['External auditory canal', 'Mastoid air cells', 'Ossicles in the epitympanum', 'Tegmen'] },
+      { name: 'Axial descending', plane: 'Axial · superior → inferior (opposite view)', from: 101, to: 200,
+        desc: 'The same territory, descending and seen from the opposite side. The epitympanum and ossicular chain are labeled.',
+        look: [] },
+      { name: 'Coronal, from the front', plane: 'Coronal · anterior → posterior', from: 201, to: 300,
+        desc: 'Coronal pass from the protympanum and tensor tympani back through the ossicles, cochlea, vestibule and round window.',
+        look: [] },
+      { name: 'Coronal, from behind', plane: 'Coronal · posterior → anterior', from: 301, to: 400,
+        desc: 'Starts at the back of the auricle and moves forward through the mastoid into the middle ear.',
+        look: ['Back of the auricle', 'Mastoid cortex and air cells', 'Sigmoid plate', 'Middle ear cleft'] },
+      { name: 'Sagittal fly-in', plane: 'Sagittal · lateral → medial', from: 401, to: 500,
+        desc: 'From the surface of the auricle inward: external ear landmarks, then the mastoid surface (McEwen triangle, spine of Henle), the tympanic fissures, and finally the ossicles and posterior tympanum.',
+        look: [] },
+    ]
+  }
+};
+const LABELSETS = { 'temporal-bone': window.TB_LABELS || {}, larynx: window.LX_LABELS || {} };
+function LAB(){ return LABELSETS[S.region] || {}; }
+function hasLabels(){ return Object.keys(LAB()).length > 0; }
+
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), ctx = cv.getContext('2d'), ov = $('#ov'), ovg = $('#ovg'), stage = $('#stage');
+const slider = $('#slider'), hud = $('#hud'), side = $('#side');
+const S = { region: null, si: 0, idx: 0, imgs: {}, showLabels: true, quiz: false, revealed: new Set(), playing: false, dir: 1, flash: null };
+let loadToken = 0;
+
+function pad(n){ return String(n).padStart(3,'0'); }
+function cur(){ return REGIONS[S.region].stacks[S.si]; }
+function frameNo(){ return cur().from + S.idx; }
+
+function buildTabs(){ return;
+  const t = $('#tabs'); t.innerHTML = '';
+  for (const [k, r] of Object.entries(REGIONS)){
+    const b = document.createElement('button'); b.className = 'tab'; b.role = 'tab'; b.textContent = r.name;
+    b.setAttribute('aria-selected', k === S.region); b.onclick = () => { location.hash = k; };
+    t.appendChild(b);
+  }
+}
+function buildStackbar(){
+  const bar = $('#stackbar'); bar.innerHTML = '';
+  REGIONS[S.region].stacks.forEach((s, i) => {
+    const b = document.createElement('button'); b.className = 'chip'; b.setAttribute('aria-pressed', i === S.si);
+    const nl = labeledFrames(s).length;
+    b.innerHTML = `<span class="n">${i+1}</span>${s.name}${nl ? '<span class="dot" title="has labels"></span>' : ''}`;
+    b.onclick = () => selectStack(i);
+    bar.appendChild(b);
+  });
+}
+function labeledFrames(s){
+  const L = LAB(); const out = []; for (let n = s.from; n <= s.to; n++) if (L[n]) out.push(n); return out;
+}
+
+function selectRegion(r){
+  if (!REGIONS[r]) r = 'larynx';
+  stopPlay(); S.region = r; S.si = REGIONS[r].start || 0;
+  const R = REGIONS[r];
+  stage.style.setProperty('--ar', R.w / R.h); $('#scrub').style.setProperty('--ar', R.w / R.h);
+  cv.width = R.w; cv.height = R.h;
+  const vb = R.vb || [R.w, R.h]; ov.setAttribute('viewBox', `0 0 ${vb[0]} ${vb[1]}`);
+  const has = hasLabels();
+  ['#tglLabels','#tglQuiz','#prevLab','#nextLab'].forEach(id => $(id).disabled = !has);
+  buildTabs(); selectStack(R.start || 0);
+}
+function selectStack(i){
+  stopPlay(); S.si = i; const s = cur();
+  S.idx = 0; slider.max = s.to - s.from; slider.value = 0;
+  const lf = labeledFrames(s);
+  if (lf.length) S.idx = lf[0] - s.from; else S.idx = Math.floor((s.to - s.from) / 2);
+  slider.value = S.idx;
+  buildStackbar(); buildTicks(); renderSide(); preload(); render();
+}
+function buildTicks(){
+  const t = $('#ticks'); t.innerHTML = ''; const s = cur(); const span = s.to - s.from || 1;
+  for (const n of labeledFrames(s)){ const i = document.createElement('i'); i.style.left = ((n - s.from) / span * 100) + '%'; t.appendChild(i); }
+}
+
+const chunkCache = {};
+function getChunk(name){ return chunkCache[name] || (chunkCache[name] = fetch(name).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(e => { delete chunkCache[name]; throw e; })); }
+function preload(){
+  const s = cur(), r = S.region, pre = REGIONS[r].prefix, tok = ++loadToken, total = s.to - s.from + 1; let done = 0;
+  const bar = $('#loadbar'); bar.style.opacity = 1; bar.style.width = '0';
+  const tick = () => { done++; bar.style.width = (done / total * 100) + '%'; if (done >= total) setTimeout(() => bar.style.opacity = 0, 300); };
+  // chunks of this stack, nearest to the current slice first
+  const chunks = {};
+  for (let n = s.from; n <= s.to; n++){ const m = MANIFEST[pre + n]; (chunks[m] = chunks[m] || []).push(n); }
+  const cn = frameNo();
+  const order = Object.keys(chunks).sort((a, b) => Math.min(...chunks[a].map(n => Math.abs(n - cn))) - Math.min(...chunks[b].map(n => Math.abs(n - cn))));
+  let p = 0;
+  const next = () => {
+    if (tok !== loadToken || p >= order.length) return;
+    const name = order[p++], frames = chunks[name];
+    getChunk(name).then(buf => {
+      let pending = frames.length;
+      const fin = () => { if (--pending === 0) next(); };
+      for (const n of frames){
+        const key = r + n;
+        if (S.imgs[key]) { tick(); fin(); continue; }
+        const im = new Image(); im.src = 'data:image/webp;base64,' + buf[n];
+        im.onload = () => { S.imgs[key] = im; tick(); if (n === frameNo()) render(); fin(); };
+        im.onerror = () => { tick(); fin(); };
+      }
+    }).catch(() => { frames.forEach(tick); next(); });
+  };
+  next(); next();
+}
+
+function nearestLoaded(n){
+  const s = cur();
+  for (let d = 0; d <= s.to - s.from; d++){
+    for (const m of [n - d, n + d]) if (m >= s.from && m <= s.to && S.imgs[S.region + m]) return S.imgs[S.region + m];
+  }
+  return null;
+}
+function render(){
+  const n = frameNo(), R = REGIONS[S.region], s = cur();
+  const im = S.imgs[S.region + n] || nearestLoaded(n);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+  if (im) ctx.drawImage(im, 0, 0, cv.width, cv.height);
+  const labs = S.showLabels ? (LAB()[n] || []) : [];
+  drawLabels(labs, n);
+  const lf = labeledFrames(s);
+  hud.innerHTML = `<b>${R.name}</b> · ${s.name}<br>Im ${S.idx + 1} / ${s.to - s.from + 1}` +
+    (LAB()[n] ? ` · <span class="lab">${LAB()[n].length} label${LAB()[n].length>1?'s':''}</span>` : '');
+  slider.value = S.idx;
+  document.querySelectorAll('.lab-item').forEach(el => el.classList.toggle('cur', +el.dataset.f === n));
+}
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent){ const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function drawLabels(labs, n){
+  ovg.innerHTML = '';
+  const vbw = (REGIONS[S.region].vb || [cv.width])[0];
+  labs.forEach((L, i) => {
+    const key = n + ':' + i, hidden = S.quiz && !S.revealed.has(key);
+    const g = el('g', { class: 'lbl' }, ovg);
+    const [[tx, ty], [px, py]] = L.a;
+    el('line', { x1: tx, y1: ty, x2: px, y2: py, stroke: '#000', 'stroke-opacity': .5, 'stroke-width': 5, 'stroke-linecap': 'round' }, g);
+    el('line', { x1: tx, y1: ty, x2: px, y2: py, stroke: '#f4efe6', 'stroke-width': 2.4, 'stroke-linecap': 'round', 'marker-end': 'url(#ah)' }, g);
+    const fs = Math.round(26 * vbw / 1160), txt = hidden ? String(i + 1) : L.t;
+    const bg = el('rect', { rx: 5, fill: hidden ? '#9e2a2b' : 'rgba(14,10,10,.78)', stroke: hidden ? '#e9dcc6' : 'rgba(233,220,198,.35)', 'stroke-width': 1 }, g);
+    const t = el('text', { x: L.x, y: L.y2 - 3, fill: '#f4efe6', 'font-family': 'IBM Plex Sans, sans-serif', 'font-size': fs, 'font-weight': 500 }, g);
+    t.textContent = txt;
+    let bb = t.getBBox();
+    if (hidden){ // center the number badge on the original label box
+      const dx = tx - px, dy = ty - py, d = Math.hypot(dx, dy) || 1;
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('x', tx + dx / d * 16); t.setAttribute('y', ty + dy / d * 16 + 9); bb = t.getBBox();
+    }
+    if (bb.x + bb.width > vbw - 8){ t.setAttribute('x', +t.getAttribute('x') - (bb.x + bb.width - vbw + 8)); bb = t.getBBox(); }
+    if (bb.x < 6){ t.setAttribute('x', +t.getAttribute('x') + (6 - bb.x)); bb = t.getBBox(); }
+    bg.setAttribute('x', bb.x - 7); bg.setAttribute('y', bb.y - 3); bg.setAttribute('width', bb.width + 14); bg.setAttribute('height', bb.height + 6);
+    if (S.flash === key){
+      const c = el('circle', { cx: px, cy: py, r: 10, fill: 'none', stroke: '#e8b04b', 'stroke-width': 3 }, g);
+      c.animate([{ r: 8, opacity: 1 }, { r: 34, opacity: 0 }], { duration: 900, iterations: 2 });
+    }
+    g.addEventListener('pointerdown', e => e.stopPropagation());
+    g.addEventListener('click', () => { if (S.quiz){ S.revealed.has(key) ? S.revealed.delete(key) : S.revealed.add(key); render(); renderSide(); } });
+  });
+}
+
+function renderSide(){
+  const R = REGIONS[S.region], s = cur();
+  let h = `<div class="plane">${s.plane}</div><h2>${s.name}</h2><p>${s.desc}</p>`;
+  const lf = labeledFrames(s), LL = LAB();
+  h += `<h3><span>Labeled structures</span><span>${lf.reduce((a, n) => a + LL[n].length, 0)}</span></h3>`;
+  if (!lf.length) h += `<div class="empty">No labels in this pass. Scroll freely, or switch to a pass marked with a dot.</div>`;
+  else {
+    h += '<div class="labs">';
+    for (const n of lf){
+      h += `<div class="lab-group" data-jump="${n}">Im ${n - s.from + 1}</div>`;
+      LL[n].forEach((L, i) => {
+        const key = n + ':' + i, hid = S.quiz && !S.revealed.has(key);
+        h += `<button class="lab-item${hid ? ' hidden' : ''}" data-f="${n}" data-i="${i}"><span class="num">${i + 1}</span><span class="txt">${L.t}</span></button>`;
+      });
+    }
+    h += '</div>';
+  }
+  if (s.look.length) h += `<h3>${lf.length ? 'Also look for' : 'What to find'}</h3><ul class="look">${s.look.map(x => `<li>${x}</li>`).join('')}</ul>`;
+  if (R.note) h += `<h3>Note</h3><p style="margin-top:0">${R.note}</p>`;
+  h += `<h3>About this region</h3><p style="margin-top:0">${R.intro}</p>`;
+  h += `<h3>Controls</h3><div class="keys"><kbd>scroll / drag</kbd><span>move through slices</span><kbd>↑ ↓ ← →</kbd><span>one slice</span><kbd>PgUp PgDn</kbd><span>ten slices</span><kbd>Space</kbd><span>cine</span><kbd>N / P</kbd><span>next / previous labeled slice</span><kbd>L</kbd><span>labels on / off</span><kbd>Q</kbd><span>quiz: hide names, click to reveal</span><kbd>1–5</kbd><span>switch pass</span></div>`;
+  side.innerHTML = h;
+  side.querySelectorAll('.lab-item').forEach(b => b.onclick = () => {
+    const n = +b.dataset.f, i = +b.dataset.i, key = n + ':' + i;
+    if (S.quiz && frameNo() === n) { S.revealed.has(key) ? S.revealed.delete(key) : S.revealed.add(key); renderSide(); }
+    S.showLabels = true; $('#tglLabels').setAttribute('aria-pressed', true);
+    S.flash = key; go(n - cur().from); setTimeout(() => { if (S.flash === key) S.flash = null; }, 2000);
+  });
+  side.querySelectorAll('.lab-group').forEach(b => b.onclick = () => go(+b.dataset.jump - cur().from));
+}
+
+function go(i){ const s = cur(); S.idx = Math.max(0, Math.min(s.to - s.from, i)); render(); }
+function step(d){ go(S.idx + d); }
+function jumpLabeled(d){
+  const s = cur(), lf = labeledFrames(s), n = frameNo(); if (!lf.length) return;
+  let t = d > 0 ? lf.find(x => x > n) : [...lf].reverse().find(x => x < n);
+  if (t === undefined) t = d > 0 ? lf[0] : lf[lf.length - 1];
+  go(t - s.from);
+}
+
+// cine
+let last = 0;
+function loop(ts){
+  if (!S.playing) return;
+  const fps = +$('#fps').value;
+  if (ts - last >= 1000 / fps){
+    last = ts; const s = cur(), max = s.to - s.from;
+    let i = S.idx + S.dir; if (i > max || i < 0){ S.dir *= -1; i = S.idx + S.dir; }
+    go(i);
+  }
+  requestAnimationFrame(loop);
+}
+function startPlay(){ S.playing = true; $('#play').setAttribute('aria-pressed', true); $('#play').firstChild.textContent = '❚❚ Cine '; requestAnimationFrame(loop); }
+function stopPlay(){ S.playing = false; $('#play').setAttribute('aria-pressed', false); $('#play').firstChild.textContent = '▶ Cine '; }
+
+// input
+let acc = 0;
+stage.addEventListener('wheel', e => {
+  e.preventDefault(); stopPlay(); hideHint();
+  acc += e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
+  while (Math.abs(acc) >= 45){ step(Math.sign(acc)); acc -= Math.sign(acc) * 45; }
+}, { passive: false });
+let drag = null;
+stage.addEventListener('pointerdown', e => { drag = { y: e.clientY, i: S.idx }; stage.setPointerCapture(e.pointerId); stopPlay(); hideHint(); stage.focus({ preventScroll: true }); });
+stage.addEventListener('pointermove', e => { if (!drag) return; const per = Math.max(3, stage.clientHeight / (cur().to - cur().from + 1) * 0.9); go(drag.i + Math.round((drag.y - e.clientY) / per) * -1); });
+stage.addEventListener('pointerup', () => drag = null); stage.addEventListener('pointercancel', () => drag = null);
+slider.addEventListener('input', () => { stopPlay(); go(+slider.value); });
+$('#play').onclick = () => S.playing ? stopPlay() : startPlay();
+$('#prevLab').onclick = () => { stopPlay(); jumpLabeled(-1); };
+$('#nextLab').onclick = () => { stopPlay(); jumpLabeled(1); };
+$('#tglLabels').onclick = () => { S.showLabels = !S.showLabels; $('#tglLabels').setAttribute('aria-pressed', S.showLabels); render(); };
+$('#tglQuiz').onclick = () => { S.quiz = !S.quiz; S.revealed.clear(); $('#tglQuiz').setAttribute('aria-pressed', S.quiz); if (S.quiz) { S.showLabels = true; $('#tglLabels').setAttribute('aria-pressed', true); } render(); renderSide(); };
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key, has = hasLabels();
+  const map = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1, PageUp: -10, PageDown: 10 };
+  if (k in map){ e.preventDefault(); stopPlay(); step(map[k]); hideHint(); }
+  else if (k === 'Home'){ e.preventDefault(); go(0); } else if (k === 'End'){ e.preventDefault(); go(1e9); }
+  else if (k === ' '){ e.preventDefault(); S.playing ? stopPlay() : startPlay(); }
+  else if ((k === 'n' || k === 'N') && has){ stopPlay(); jumpLabeled(1); }
+  else if ((k === 'p' || k === 'P') && has){ stopPlay(); jumpLabeled(-1); }
+  else if ((k === 'l' || k === 'L') && has) $('#tglLabels').click();
+  else if ((k === 'q' || k === 'Q') && has) $('#tglQuiz').click();
+  else if (/^[1-9]$/.test(k) && +k <= REGIONS[S.region].stacks.length) selectStack(+k - 1);
+});
+let hintGone = false; function hideHint(){ if (!hintGone){ hintGone = true; $('#hint').style.opacity = 0; } }
+
+selectRegion('temporal-bone');
+if (window.parent !== window){ const c = $('#closeCine'); c.hidden = false; c.onclick = () => window.parent.postMessage('closeCinematic', '*'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && window.parent !== window) window.parent.postMessage('closeCinematic', '*'); });
+</script>
+</body>
+</html>
