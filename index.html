@@ -100,8 +100,14 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padd
 .hdrOto{margin-left:8px;background:#3a2c12;border:1px solid #c9a24a;color:#ffd479;border-radius:8px;padding:5px 12px;font:inherit;font-weight:600;cursor:pointer}
 label.btn{display:inline-block;cursor:pointer}
 /* ---- phones and small tablets ---- */
-#mTabs,#mMenu,#mScrim{display:none}
-body.mobile #app{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;height:100dvh}
+#mTabs,#mMenu,#mScrim,#mQuick{display:none}
+body.mobile #app{grid-template-rows:auto 1fr auto auto}
+body.mobile #mQuick{display:block;padding:6px 10px 2px;background:var(--panel);border-top:1px solid var(--line)}
+body.mobile .mqRow{display:flex;align-items:center;gap:10px;margin:2px 0 6px}
+body.mobile .mqRow>span{font-size:12.5px;color:var(--mute);flex:none}
+body.mobile .mqBones button{flex:1;background:transparent;border:1px solid var(--line);border-left:5px solid var(--c);color:var(--text);border-radius:8px;padding:7px 4px;font:inherit;font-size:12.5px}
+body.mobile .mqBones button.off{opacity:.4}
+body.mobile #app{grid-template-columns:1fr;height:100dvh}
 body.mobile header{grid-column:1;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:6px;padding:7px 8px;align-items:center}
 body.mobile header::-webkit-scrollbar{display:none}
 body.mobile header h1{font-size:13.5px;white-space:nowrap}
@@ -243,6 +249,8 @@ body.mobile .lab{padding:7px 6px} body.mobile label.ck{margin:7px 0} body.mobile
   <div class="view" id="vco"><canvas></canvas><div class="tag"><b style="color:#c792ea">Coronal</b> <span class="sl"></span></div></div>
   <div class="view" id="vsa"><canvas></canvas><div class="tag"><b style="color:#9ef0b0">Sagittal</b> <span class="sl"></span></div></div>
 </main>
+<div id="mQuick"><div class="mqRow"><span>Explode</span><input id="mExplode" type="range" min="0" max="25" step="0.5" value="0"></div>
+  <div class="mqRow mqBones"><button data-l="1" style="--c:var(--sq)">Squamous</button><button data-l="3" style="--c:var(--pe)">Petrous</button><button data-l="2" style="--c:var(--ty)">Tympanic</button></div></div>
 <nav id="mTabs"><button data-v="v3d">3D</button><button data-v="vax">Axial</button><button data-v="vco">Coronal</button><button data-v="vsa">Sagittal</button></nav>
 </div>
 <div id="refPop"><div class="card">
@@ -453,11 +461,14 @@ function buildUI(){
   seg('bonemode',S.mode); seg('saccBones',S.saccFaint?1:0); { const b=document.getElementById('saccBtn'); b.textContent=S.sacc?'Exit sacci view':'Show sacci'; b.classList.toggle('on',!!S.sacc); } seg('lookmode',S.bone?1:0); seg('segset',S.seg);
   document.getElementById('cine').checked=!!S.cine; document.getElementById('hires').checked=!!S.hires; document.getElementById('lightFixed').checked=!!S.lightFixed; document.getElementById('lite').checked=!!S.lite;
   for(const k of ['lightAz','lightEl']){document.getElementById(k).value=S[k];document.getElementById(k+'V').textContent=S[k]+'°';}
-  document.getElementById('explode').value=S.explode; document.getElementById('explodeV').textContent=S.explode+' mm';
+  document.getElementById('explode').value=S.explode; document.getElementById('explodeV').textContent=S.explode+' mm'; document.getElementById('mExplode').value=S.explode;
+  document.querySelectorAll('#mQuick .mqBones button').forEach(b=>b.classList.toggle('off',!S.vis[+b.dataset.l]));
   document.getElementById('cut').value=S.cut; document.getElementById('iso').value=S.iso; document.getElementById('isoV').textContent=S.iso+' HU';
 }
 function wireUI(){
-  const ex=document.getElementById('explode'); ex.oninput=()=>{S.explode=+ex.value;document.getElementById('explodeV').textContent=S.explode+' mm';redraw3D(true);};
+  { const mx=document.getElementById('mExplode'); mx.oninput=()=>{ S.explode=+mx.value; document.getElementById('explode').value=S.explode; document.getElementById('explodeV').textContent=S.explode+' mm'; redraw3D(true); };
+    document.querySelectorAll('#mQuick .mqBones button').forEach(b=>b.onclick=()=>{ const l=+b.dataset.l; S.vis[l]=S.vis[l]?0:1; buildUI(); redrawAll(); }); }
+  const ex=document.getElementById('explode'); ex.oninput=()=>{S.explode=+ex.value;document.getElementById('explodeV').textContent=S.explode+' mm';document.getElementById('mExplode').value=S.explode;redraw3D(true);};
   document.getElementById('saccBtn').onclick=()=>setSaccMode(!S.sacc);
   document.querySelectorAll('#saccBones button').forEach(b=>b.onclick=()=>{ S.saccFaint=+b.dataset.v; if(S.sacc){ saccApply(); } buildUI(); redrawAll(); });
   document.querySelectorAll('#lookmode button').forEach(b=>b.onclick=()=>{S.bone=+b.dataset.v;buildUI();redraw3D(false);});
@@ -523,7 +534,7 @@ const VS=`#version 300 es
 in vec2 p; void main(){gl_Position=vec4(p,0.,1.);}`;
 const FS=`#version 300 es
 precision highp float; precision highp int; precision highp sampler3D; precision highp usampler3D;
-uniform sampler3D uCT; uniform usampler3D uLab; uniform usampler3D uBrick; uniform usampler3D uMacro; uniform sampler3D uDF0, uDF1, uDF2; uniform sampler3D uRec; uniform vec3 uRecO, uRecExt; uniform int uRecOn;
+uniform sampler3D uCT; uniform usampler3D uLab; uniform usampler3D uBrick; uniform usampler3D uMacro; uniform sampler3D uDF0, uDF1, uDF2; uniform sampler3D uRec; uniform vec3 uRecO, uRecExt; uniform int uRecOn; uniform float uRecYb;
 uniform vec3 uSp, uSize, uRo0, uRight, uUp, uFwd, uBoxMin, uBoxMax, uCross, uBrickMM, uEye;
 uniform vec2 uRes; uniform float uScale, uIso, uIsoOs, uStep, uCutPos, uCutSign, uSkip, uTanH;
 uniform int uVis[8]; uniform mat3 uA[8]; uniform vec3 uB[8]; uniform vec3 uCol[8]; uniform vec3 uSutCol[4];
@@ -572,7 +583,11 @@ float stapF(vec3 q){ if(uStapOn==0) return 0.; vec3 u=(q-uStapO)/uStapExt; if(an
 float memb(int l, vec3 q){ vec3 g=q/uSp-0.5; vec3 f=fract(g); ivec3 b=ivec3(floor(g)); float w=0.;
   for(int k=0;k<8;k++){ ivec3 o=ivec3(k&1,(k>>1)&1,(k>>2)&1); float c=(int(texelFetch(uLab,b+o,0).r&15u)==l)?1.:0.;
     w+=c*(o.x==1?f.x:1.-f.x)*(o.y==1?f.y:1.-f.y)*(o.z==1?f.z:1.-f.z); } return w; }
-float dens(int l, vec3 q){ if(l==6) return stapF(q); float v=inVol(q)?ct(q):0.; if(l==1&&uRecOn==1) v=max(v,uIso+0.3*(recF(q)-0.5)); if(l==4||l==5) v=min(v,uIsoOs+0.3*(memb(l,q)-0.5)); return v; }
+// within the reconstruction box the squama is a blend: modelled plate in front of the cut, morphing into the CT over the first uRecYb mm
+bool recZone(vec3 q){ return uRecOn==1&&uVis[1]==1&&inRec(q)&&q.y<uRecYb&&(!inVol(q)||int(lab(q)&15u)<=1); }
+float recDens(vec3 q){ float m=uIso+0.3*(recF(q)-0.5); if(!inVol(q)) return m;
+  float c=int(lab(q)&15u)==1?ct(q):min(ct(q),uIso-0.02); float w=smoothstep(0.1,uRecYb,q.y); return mix(m,c,w); }
+float dens(int l, vec3 q){ if(l==6) return stapF(q); if(l==1&&uRecOn==1&&inRec(q)&&q.y<uRecYb) return recDens(q); float v=inVol(q)?ct(q):0.; if(l==4||l==5) v=min(v,uIsoOs+0.3*(memb(l,q)-0.5)); return v; }
 bool inC(vec3 q){ vec3 u=(q-uCO)/uCExt; return all(greaterThanEqual(u,vec3(0.)))&&all(lessThanEqual(u,vec3(1.))); }
 bool inD(vec3 q){ vec3 u=(q-uDO)/uDExt; return all(greaterThanEqual(u,vec3(0.)))&&all(lessThanEqual(u,vec3(1.))); }
 float softT(int k){ return ((k>=6&&k<10)||k==14)?uGrowT:0.5; }
@@ -702,12 +717,12 @@ void main(){
       int hl=-1; int su=0; vec3 hq=p;
       if(uXf==0){
         if(uVis[6]==1&&uMode<2&&cutOK(p)&&stapF(p)>=0.5){hl=6;}
-        else if(uRecOn==1&&uMode<2&&cutOK(p)&&recF(p)>=0.5&&!(inVol(p)&&int(lab(p)&15u)!=1&&int(lab(p)&15u)!=0)){hl=1;}
+        else if(recZone(p)){ if(uMode<2&&cutOK(p)&&recDens(p)>=uIso) hl=1; }
         else if(inVol(p)&&cutOK(p)){uint v=lab(p); int l=int(v&15u); int s=int((v>>4u)&3u);
           if(l<8&&l!=6&&uVis[l]==1){ if(s>0&&((uSut>>(s-1))&1)==1){hl=l;su=s;} else if(uMode<2&&ct(p)>=isoOf(l)){hl=l;} } }
       } else {
         for(int l=0;l<8;l++){ if(((om>>uint(l))&1u)==0u) continue; vec3 q=uA[l]*p+uB[l];
-          if(l==1&&uRecOn==1&&uMode<2&&cutOK(q)&&recF(q)>=0.5&&!(inVol(q)&&int(lab(q)&15u)>1)){hl=1;hq=q;break;}
+          if(l==1&&recZone(q)){ if(uMode<2&&cutOK(q)&&recDens(q)>=uIso){hl=1;hq=q;break;} continue; }
           if(!inVol(q)||!cutOK(q)) continue;
           if(l==6){ if(uMode<2&&stapF(q)>=0.5){hl=6;hq=q;break;} continue; }
           uint v=lab(q); if(int(v&15u)!=l) continue; int s=int((v>>4u)&3u);
@@ -806,7 +821,7 @@ function init3D(){
   for(const w of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T,gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D,w,gl.CLAMP_TO_EDGE);
   texLab=gl.createTexture(); texBrick=gl.createTexture(); texMacro=gl.createTexture();
   for(const P of PROGS){ prog=P.prog; U=P.U; gl.useProgram(prog);
-  for(const n of ['uCT','uLab','uBrick','uMacro','uDF0','uDF1','uDF2','uRec','uRecO','uRecExt','uRecOn','uSp','uSize','uRo0','uRight','uUp','uFwd','uBoxMin','uBoxMax','uCross','uBrickMM','uEye','uRes','uScale','uIso','uIsoOs','uStep','uCutPos','uCutSign','uSkip','uTanH','uXf','uMode','uSut','uCutAxis','uCine','uPersp','uBone','uLight','uVisMask','uNCh','uNOn','uNOff','uTube','uStap','uStapO','uStapExt','uStapOn','uSoftA','uSoftB','uSoftC','uSoftD','uSoftE','uGrowT','uBO','uBExt','uCO','uCExt','uDO','uDExt','uSoftOn','uDot']) U[n]=gl.getUniformLocation(prog,n);
+  for(const n of ['uCT','uLab','uBrick','uMacro','uDF0','uDF1','uDF2','uRec','uRecO','uRecExt','uRecOn','uRecYb','uSp','uSize','uRo0','uRight','uUp','uFwd','uBoxMin','uBoxMax','uCross','uBrickMM','uEye','uRes','uScale','uIso','uIsoOs','uStep','uCutPos','uCutSign','uSkip','uTanH','uXf','uMode','uSut','uCutAxis','uCine','uPersp','uBone','uLight','uVisMask','uNCh','uNOn','uNOff','uTube','uStap','uStapO','uStapExt','uStapOn','uSoftA','uSoftB','uSoftC','uSoftD','uSoftE','uGrowT','uBO','uBExt','uCO','uCExt','uDO','uDExt','uSoftOn','uDot']) U[n]=gl.getUniformLocation(prog,n);
   for(const n of ['uVis','uA','uB','uCol','uSutCol','uCh','uChS','uTCol','uSoftCol','uTubeOp','uSoftOp','uBoneOp']) U[n]=gl.getUniformLocation(prog,n+'[0]');
   gl.uniform1i(U.uCT,0); gl.uniform1i(U.uLab,1); gl.uniform1i(U.uBrick,2); gl.uniform1i(U.uMacro,11); gl.uniform1i(U.uRec,15); gl.uniform1i(U.uDF0,12); gl.uniform1i(U.uDF1,13); gl.uniform1i(U.uDF2,14); gl.uniform1i(U.uTube,3); gl.uniform1i(U.uStap,4);
   gl.uniform1i(U.uSoftA,5); gl.uniform1i(U.uSoftB,6); gl.uniform1i(U.uSoftC,8); gl.uniform1i(U.uSoftD,9); gl.uniform1i(U.uSoftE,10); }
@@ -1007,7 +1022,7 @@ function render3D(){
     gl.uniform4fv(U.uChS,CHAINS.flatMap(c=>[...c.c,c.R]).concat(Array(4*(8-CHAINS.length)).fill(0))); }
   const tc=[0,0,0]; for(let i=1;i<8;i++){ const st=NERVE_STYLE[i]; tc.push(...(st?st.col.map(v=>v/255):[1,1,1])); } gl.uniform3fv(U.uTCol,tc);
   gl.uniform1i(U.uStapOn,STAPON&&S.seg==='refined'?1:0);
-  gl.uniform1i(U.uRecOn,(RECOK&&S.recon&&S.vis[1])?1:0); if(META.reconSq){ gl.uniform3fv(U.uRecO,META.reconSq.origin); gl.uniform3fv(U.uRecExt,META.reconSq.extent); }
+  gl.uniform1i(U.uRecOn,(RECOK&&S.recon&&S.vis[1])?1:0); if(META.reconSq){ gl.uniform3fv(U.uRecO,META.reconSq.origin); gl.uniform3fv(U.uRecExt,META.reconSq.extent); gl.uniform1f(U.uRecYb,META.reconSq.blend||0.3); }
   if(META.stapes){ const st=META.stapes; gl.uniform3fv(U.uStapO,st.origin); gl.uniform3fv(U.uStapExt,st.dims.map(v=>v*st.step)); }
   gl.uniform3fv(U.uNOff,S.explode>0?offsets()[3]:[0,0,0]);
   gl.drawArrays(gl.TRIANGLES,0,3);
